@@ -1017,14 +1017,22 @@
             if (gistData && Array.isArray(gistData.canales)) {
               gistData.canales.forEach(canalExtra => {
                 gistCount++;
-                // Normalizar fuentes del gist
-                const incomingSources = (canalExtra.fuentes || []).map((f, fIdx) => ({
-                  label: f.etiqueta || `Opción ${fIdx + 1}`,
-                  tipo: f.tipo || "web_hls",
-                  type: f.tipo || "web_hls",
-                  url: f.url,
-                  referer: f.referer || ""
-                }));
+                // Normalizar y deduplicar fuentes del gist (convierte blogs puente en embeds limpios)
+                const seenUrls = new Set();
+                const incomingSources = [];
+                (canalExtra.fuentes || []).forEach((f, fIdx) => {
+                  const cleanUrl = normalizeEmbedUrl(f.url);
+                  if (cleanUrl && !seenUrls.has(cleanUrl)) {
+                    seenUrls.add(cleanUrl);
+                    incomingSources.push({
+                      label: f.etiqueta || `Opción ${incomingSources.length + 1}`,
+                      tipo: (cleanUrl.includes("/embed2/") || f.tipo === "web_hls") ? "web_hls" : (f.tipo || "web_hls"),
+                      type: (cleanUrl.includes("/embed2/") || f.tipo === "web_hls") ? "web_hls" : (f.tipo || "web_hls"),
+                      url: cleanUrl,
+                      referer: f.referer || "https://www.anibaltv.net/"
+                    });
+                  }
+                });
 
                 // Comprobar si el canal ya existe en la grilla base
                 const existing = merged.find(c => 
@@ -1324,22 +1332,23 @@
       playCurrentChannelSource();
     }
 
-        function normalizeEmbedUrl(rawUrl) {
+    function normalizeEmbedUrl(rawUrl) {
       if (!rawUrl) return rawUrl;
       const u = rawUrl.toLowerCase();
       // Si ya es un reproductor embed directo, se mantiene tal cual
       if (u.includes("/embed2/")) return rawUrl;
 
       // Normalización de enlaces de páginas puente (Blogger / AnibalTV) a sus reproductores directos limpios
-      if (u.includes("espn-3")) return "https://embed.ksdjugfssddeports.com/embed2/espn3.php";
-      if (u.includes("espn-2")) return "https://embed.ksdjugfssddeports.com/embed2/espn2.php";
-      if (u.includes("espn-4") || u.includes("espn-extra")) return "https://embed.ksdjugfssddeports.com/embed2/espn4.php";
-      if (u.includes("espn-5")) return "https://embed.ksdjugfssddeports.com/embed2/espn5.php";
-      if (u.includes("espn-6")) return "https://embed.ksdjugfssddeports.com/embed2/espn6.php";
-      if (u.includes("espn-7")) return "https://embed.ksdjugfssddeports.com/embed2/espn7.php";
-      if (u.includes("espn-premium") || u.includes("espnpremiumar")) return "https://embed.ksdjugfssddeports.com/embed2/espnpremiumar.php";
-      if (u.includes("espn-sur") || (u.includes("espn") && !u.includes("espn-") && !u.includes("espnpremiumar"))) return "https://embed.saohgdassregions.com/embed2/espnar.php";
-      if (u.includes("tnt-sports") || u.includes("tntsportsar")) return "https://embed.ksdjugfssddeports.com/embed2/tntsportsar.php";
+      if (u.includes("espn-2") || u.includes("espn2")) return "https://embed.ksdjugfssddeports.com/embed2/espn2.php";
+      if (u.includes("espn-3") || u.includes("espn3")) return "https://embed.ksdjugfssddeports.com/embed2/espn3.php";
+      if (u.includes("espn-4") || u.includes("espn4") || u.includes("espn-extra")) return "https://embed.ksdjugfssddeports.com/embed2/espn4.php";
+      if (u.includes("espn-5") || u.includes("espn5")) return "https://embed.ksdjugfssddeports.com/embed2/espn5.php";
+      if (u.includes("espn-6") || u.includes("espn6")) return "https://embed.ksdjugfssddeports.com/embed2/espn6.php";
+      if (u.includes("espn-7") || u.includes("espn7")) return "https://embed.ksdjugfssddeports.com/embed2/espn7.php";
+      if (u.includes("espn-premium") || u.includes("espnpremium")) return "https://embed.ksdjugfssddeports.com/embed2/espnpremiumar.php";
+      if (u.includes("espn")) return "https://embed.saohgdassregions.com/embed2/espnar.php";
+      if (u.includes("tnt-sports") || u.includes("tntsports")) return "https://embed.ksdjugfssddeports.com/embed2/tntsportsar.php";
+      if (u.includes("liga-profesional")) return "https://embed.ksdjugfssddeports.com/embed2/espnpremiumar.php";
       if (u.includes("directv-sports") || u.includes("directvsports")) return "https://embed.saohgdassregions.com/embed2/directvsports.php";
       if (u.includes("tyc-sports") || u.includes("tycsports")) return "https://embed.saohgdassregions.com/embed2/tycsports.php";
       if (u.includes("fox-sports") || u.includes("foxsports")) return "https://embed.ksdjugfssddeports.com/embed2/foxsports.php";

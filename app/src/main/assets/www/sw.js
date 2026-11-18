@@ -1,11 +1,12 @@
 /* AndyTV Plus - Service Worker PWA */
-const CACHE_NAME = 'andytv-plus-v1';
+const CACHE_NAME = 'andytv-plus-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
   './hls.min.js',
+  './channels.js',
   './epg.js',
   './channels.json'
 ];
@@ -35,22 +36,21 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.endsWith('.m3u8') || url.pathname.endsWith('.ts') ||
       url.hostname.includes('youtube.com') || url.hostname.includes('githubusercontent.com') ||
       url.hostname.includes('workers.dev') || url.hostname.includes('lambda-url') ||
-      url.hostname.includes('mdstrm.com') || url.hostname.includes('vodgc.net')) {
+      url.hostname.includes('mdstrm.com') || url.hostname.includes('vodgc.net') ||
+      url.hostname !== self.location.hostname) {
     return;
   }
 
+  // Network-First: intentar siempre red para tener la última versión y usar caché si no hay conexión
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Retornar caché y actualizar en segundo plano (stale-while-revalidate)
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {});
-        return cachedResponse;
-      }
-      return fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const cloned = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
