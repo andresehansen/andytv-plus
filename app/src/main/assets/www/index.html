@@ -18,6 +18,7 @@
     }
   </script>
   <!-- Guía EPG y Canales base -->
+  <script src="channels.js"></script>
   <script src="epg.js"></script>
 
   <style>
@@ -944,14 +945,19 @@
 
       try {
         // 1. Cargar canales base
-        const res = await fetch("channels.json?t=" + Date.now()).catch(() => fetch("../channels.json?t=" + Date.now()));
+        const res = await fetch("channels.json?t=" + Date.now()).catch(() => fetch("./channels.json?t=" + Date.now()));
         if (res.ok) {
           BASE_CHANNELS = await res.json();
+        } else if (window.DEFAULT_CHANNELS && window.DEFAULT_CHANNELS.length > 0) {
+          BASE_CHANNELS = window.DEFAULT_CHANNELS;
         } else {
           BASE_CHANNELS = [];
         }
       } catch (e) {
-        console.warn("Fallo cargando channels.json base:", e);
+        console.warn("Fallo cargando channels.json base, usando canales embebidos:", e);
+        if (window.DEFAULT_CHANNELS && window.DEFAULT_CHANNELS.length > 0) {
+          BASE_CHANNELS = window.DEFAULT_CHANNELS;
+        }
       }
 
       // Copia de trabajo
@@ -1375,7 +1381,6 @@
       video.removeAttribute("src");
       iframe.src = "about:blank";
 
-      const sourceType = source.tipo || source.type || "hls";
       console.log(`[Play] Sintonizando: ${channel.name} | Tipo: ${sourceType} | URL: ${source.url}`);
 
       // RAMA A: APLICACIÓN ANDROID TV NATIVA
