@@ -847,11 +847,17 @@
        ANDYTV PLUS - MOTOR MULTI-FUENTE Y BYOL
        ========================================================================== */
 
-    // Registro PWA Service Worker
+    // Registro PWA Service Worker (se desregistra automáticamente en localhost para evitar caché viejo)
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
-      });
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
+        });
+      } else {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error:', err));
+        });
+      }
     }
 
     // Detección de entorno Android TV Wrapper vs Navegador Web
