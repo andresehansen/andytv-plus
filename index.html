@@ -1438,16 +1438,36 @@
         }
       }
 
-      // RAMA B: NAVEGADOR WEB / PWA (hls.js + Sandboxed Iframe)
+      // RAMA B: NAVEGADOR WEB / PWA (Extractor HLS local o Sandboxed Iframe)
       if (sourceType === "web_hls" || sourceType === "web_bridge" || sourceType === "embed") {
-        video.style.display = "none";
-        iframe.style.display = "block";
-        iframe.src = normalizeEmbedUrl(source.url);
-        iframe.onload = () => {
-          hideLoading();
-          clearTimeout(autoFallbackTimer);
+        const targetEmbed = normalizeEmbedUrl(source.url);
+        const loadIframeFallback = () => {
+          video.style.display = "none";
+          iframe.style.display = "block";
+          iframe.src = targetEmbed;
+          iframe.onload = () => {
+            hideLoading();
+            clearTimeout(autoFallbackTimer);
+          };
+          iframe.onerror = () => switchChannelSourceAuto();
         };
-        iframe.onerror = () => switchChannelSourceAuto();
+
+        if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+          fetch(`/api/resolve?url=${encodeURIComponent(targetEmbed)}&referer=${encodeURIComponent(source.referer || "")}`)
+            .then(r => r.json())
+            .then(data => {
+              if (data && data.ok && data.m3u8) {
+                iframe.style.display = "none";
+                video.style.display = "block";
+                startHlsStreamWeb(data.m3u8, false);
+              } else {
+                loadIframeFallback();
+              }
+            })
+            .catch(() => loadIframeFallback());
+        } else {
+          loadIframeFallback();
+        }
       } else if (sourceType === "youtube-live") {
         video.style.display = "none";
         iframe.style.display = "block";
