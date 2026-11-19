@@ -227,6 +227,34 @@
       ]
     },
     {
+      "id": "dazn_f1",
+      "nombre": "DAZN F1 (Fórmula 1)",
+      "categoria": "Deportes",
+      "prioridad": "primaria",
+      "fuentes": [
+        {
+          "etiqueta": "Opción 1 (DAZN F1)",
+          "tipo": "web_hls",
+          "url": "https://embed.ksdjugfssddeports.com/embed2/daznf1.php",
+          "referer": "https://www.anibaltv.net/"
+        }
+      ]
+    },
+    {
+      "id": "fox_sports_mx",
+      "nombre": "Fox Sports MX (F1)",
+      "categoria": "Deportes",
+      "prioridad": "primaria",
+      "fuentes": [
+        {
+          "etiqueta": "Opción 1 (Fox Sports MX)",
+          "tipo": "web_hls",
+          "url": "https://embed.ksdjugfssddeports.com/embed2/foxsportsmexico.php",
+          "referer": "https://www.anibaltv.net/"
+        }
+      ]
+    },
+    {
       "id": "dazn_laliga",
       "nombre": "DAZN LaLiga",
       "categoria": "Deportes",
@@ -235,7 +263,7 @@
         {
           "etiqueta": "Opción 1",
           "tipo": "web_hls",
-          "url": "https://embed.ksdjugfssddeports.com/embed2/daznf1.php",
+          "url": "https://embed.ksdjugfssddeports.com/embed2/daznlaliga.php",
           "referer": "https://www.anibaltv.net/"
         }
       ]
