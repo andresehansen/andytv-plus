@@ -41,7 +41,7 @@ jobs:
           gradle-version: '8.2'
 
       - name: Build AndyTV Plus APK
-        run: gradle assembleDebug
+        run: gradle assembleDebug --refresh-dependencies
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -60,6 +60,8 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
