@@ -997,6 +997,14 @@
           let fetchTarget = gistUrl.trim();
           let isApi = false;
 
+          // Atajo rápido de 4 dígitos para control remoto de TV
+          const GIST_SHORTCUTS = {
+            "2049": "2049d973495a1fa63d6baaa4a5d7343a"
+          };
+          if (GIST_SHORTCUTS[fetchTarget.toLowerCase()]) {
+            fetchTarget = GIST_SHORTCUTS[fetchTarget.toLowerCase()];
+          }
+
           // Soporte inteligente para TV: ingresar solo el ID del Gist, link corto o URL completa
           if (!fetchTarget.startsWith("http://") && !fetchTarget.startsWith("https://")) {
             fetchTarget = `https://api.github.com/gists/${fetchTarget}`;
