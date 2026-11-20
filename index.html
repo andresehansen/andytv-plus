@@ -1296,7 +1296,22 @@
 
     const viewHome = document.getElementById("view-home");
     const viewPlayer = document.getElementById("view-player");
+    const videoContainer = document.getElementById("video-container");
     const video = document.getElementById("tv-video");
+
+    function setNativeExoTransparent(isNative) {
+      if (isNative) {
+        document.documentElement.style.backgroundColor = "transparent";
+        document.body.style.backgroundColor = "transparent";
+        viewPlayer.style.background = "transparent";
+        if (videoContainer) videoContainer.style.background = "transparent";
+      } else {
+        document.documentElement.style.backgroundColor = "#080c14";
+        document.body.style.backgroundColor = "#080c14";
+        viewPlayer.style.background = "#000000";
+        if (videoContainer) videoContainer.style.background = "#000000";
+      }
+    }
     const iframe = document.getElementById("tv-iframe");
     const loader = document.getElementById("player-loader");
     const loaderText = document.getElementById("player-loader-text");
@@ -1413,24 +1428,30 @@
       if (isAndroidApp) {
         if (sourceType === "web_hls" || sourceType === "web_bridge") {
           // Extraer .m3u8 Flussonic dinámico con headers en segundo plano nativo
+          setNativeExoTransparent(true);
           video.style.display = "none";
           iframe.style.display = "none";
           window.AndroidBridge.resolveAndPlayWebHls(normalizeEmbedUrl(source.url), source.referer || "https://www.anibaltv.net/", sourceType);
           return;
         } else if (sourceType === "telefe-token") {
-          // Telefe token API
+          // Telefe token API -> reproducir nativo en ExoPlayer con fondo transparente
+          setNativeExoTransparent(true);
+          video.style.display = "none";
+          iframe.style.display = "none";
           fetch(channel.tokenApiUrl || "https://57j4mtvcjjf7siqnnvkixb5d3i0uvjei.lambda-url.us-east-1.on.aws/?stream_id=6a024684fd4ca6a938f3a118")
             .then(r => r.json())
             .then(data => {
               if (data && data.access_token) {
                 const m3u8Url = `https://mdstrm.com/live-stream-playlist/6a024684fd4ca6a938f3a118.m3u8?access_token=${data.access_token}`;
-                startHlsStreamWeb(m3u8Url, true);
+                window.AndroidBridge.playNativeHlsWithHeaders(m3u8Url, "{}");
               } else {
                 switchChannelSourceAuto();
               }
             }).catch(() => switchChannelSourceAuto());
           return;
         } else if (sourceType === "youtube-live") {
+          if (window.AndroidBridge.stopNativeHls) window.AndroidBridge.stopNativeHls();
+          setNativeExoTransparent(false);
           video.style.display = "none";
           iframe.style.display = "block";
           iframe.src = `https://www.youtube.com/embed/${source.ytVideoId}?autoplay=1&controls=0`;
@@ -1440,6 +1461,7 @@
         } else if (sourceType === "embed") {
           // Reproductor web oficial embebido (ej. respaldo de América TV)
           if (window.AndroidBridge.stopNativeHls) window.AndroidBridge.stopNativeHls();
+          setNativeExoTransparent(false);
           video.style.display = "none";
           iframe.style.display = "block";
           iframe.src = source.url;
@@ -1452,12 +1474,14 @@
         } else if (source.preferNativeAndroid === false) {
           // Fuente proxy explícita: reproducir por Hls.js usando Worker proxy en WebView
           if (window.AndroidBridge.stopNativeHls) window.AndroidBridge.stopNativeHls();
+          setNativeExoTransparent(false);
           iframe.style.display = "none";
           video.style.display = "block";
           startHlsStreamWeb(source.url, true);
           return;
         } else {
           // HLS directo para ExoPlayer (inyecta headers como Referer para América TV)
+          setNativeExoTransparent(true);
           video.style.display = "none";
           iframe.style.display = "none";
           window.AndroidBridge.playNativeHlsWithHeaders(source.url, JSON.stringify(source.headers || {}));
@@ -1466,7 +1490,21 @@
       }
 
       // RAMA B: NAVEGADOR WEB / PWA (Extractor HLS local o Sandboxed Iframe)
-      if (sourceType === "web_hls" || sourceType === "web_bridge" || sourceType === "embed") {
+      setNativeExoTransparent(false);
+      if (sourceType === "telefe-token") {
+        iframe.style.display = "none";
+        video.style.display = "block";
+        fetch(channel.tokenApiUrl || "https://57j4mtvcjjf7siqnnvkixb5d3i0uvjei.lambda-url.us-east-1.on.aws/?stream_id=6a024684fd4ca6a938f3a118")
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.access_token) {
+              const m3u8Url = `https://mdstrm.com/live-stream-playlist/6a024684fd4ca6a938f3a118.m3u8?access_token=${data.access_token}`;
+              startHlsStreamWeb(m3u8Url, true);
+            } else {
+              switchChannelSourceAuto();
+            }
+          }).catch(() => switchChannelSourceAuto());
+      } else if (sourceType === "web_hls" || sourceType === "web_bridge" || sourceType === "embed") {
         const targetEmbed = sourceType === "embed" ? source.url : normalizeEmbedUrl(source.url);
         const loadIframeFallback = () => {
           video.style.display = "none";
@@ -1561,6 +1599,7 @@
     window.onDynamicStreamFallbackWeb = function() {
       const channel = MERGED_CHANNELS[currentIndex];
       const source = channel.sources[channel.currentSourceIndex || 0];
+      setNativeExoTransparent(false);
       video.style.display = "none";
       iframe.style.display = "block";
       iframe.src = normalizeEmbedUrl(source.url);
@@ -1610,6 +1649,7 @@
       clearTimeout(autoFallbackTimer);
       if (hlsInstance) hlsInstance.destroy();
       if (isAndroidApp && window.AndroidBridge.stopNativeHls) window.AndroidBridge.stopNativeHls();
+      setNativeExoTransparent(false);
       viewPlayer.style.display = "none";
       viewHome.style.display = "flex";
       renderChannelsGrid();
