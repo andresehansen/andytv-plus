@@ -93,11 +93,12 @@ test("sourceKey diferencia fuentes directa y proxy con la misma URL", () => {
   assert.strictEqual(sourceKey(proxy), "hls|https://dai.google.com/master.m3u8|proxy");
 });
 
-test("América TV tiene Referer en fuente principal y respaldo proxy", () => {
+test("América TV tiene señal directa primaria, respaldo Google DAI con Referer y respaldo proxy", () => {
   const chs = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "channels.json"), "utf8"));
   const america = chs.find(c => c.id === "americatv");
   assert.strictEqual(america.pinSources, true);
-  assert.strictEqual(america.sources[0].headers.Referer, "https://vmf.edge-apps.net/");
-  assert.strictEqual(america.sources[1].useProxy, true);
-  assert.strictEqual(america.sources[1].preferNativeAndroid, false);
+  assert.strictEqual(america.sources[0].url, "https://prepublish.f.qaotic.net/a07/americahls-100056/playlist_720p.m3u8");
+  assert.strictEqual(america.sources[1].headers.Referer, "https://vmf.edge-apps.net/");
+  assert.strictEqual(america.sources[2].useProxy, true);
+  assert.strictEqual(america.sources[2].preferNativeAndroid, false);
 });
