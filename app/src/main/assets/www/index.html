@@ -1437,8 +1437,27 @@
           hideLoading();
           clearTimeout(autoFallbackTimer);
           return;
+        } else if (sourceType === "embed") {
+          // Reproductor web oficial embebido (ej. respaldo de América TV)
+          if (window.AndroidBridge.stopNativeHls) window.AndroidBridge.stopNativeHls();
+          video.style.display = "none";
+          iframe.style.display = "block";
+          iframe.src = source.url;
+          iframe.onload = () => {
+            hideLoading();
+            clearTimeout(autoFallbackTimer);
+          };
+          iframe.onerror = () => switchChannelSourceAuto();
+          return;
+        } else if (source.preferNativeAndroid === false) {
+          // Fuente proxy explícita: reproducir por Hls.js usando Worker proxy en WebView
+          if (window.AndroidBridge.stopNativeHls) window.AndroidBridge.stopNativeHls();
+          iframe.style.display = "none";
+          video.style.display = "block";
+          startHlsStreamWeb(source.url, true);
+          return;
         } else {
-          // HLS directo para ExoPlayer
+          // HLS directo para ExoPlayer (inyecta headers como Referer para América TV)
           video.style.display = "none";
           iframe.style.display = "none";
           window.AndroidBridge.playNativeHlsWithHeaders(source.url, JSON.stringify(source.headers || {}));
@@ -1448,7 +1467,7 @@
 
       // RAMA B: NAVEGADOR WEB / PWA (Extractor HLS local o Sandboxed Iframe)
       if (sourceType === "web_hls" || sourceType === "web_bridge" || sourceType === "embed") {
-        const targetEmbed = normalizeEmbedUrl(source.url);
+        const targetEmbed = sourceType === "embed" ? source.url : normalizeEmbedUrl(source.url);
         const loadIframeFallback = () => {
           video.style.display = "none";
           iframe.style.display = "block";
@@ -1460,7 +1479,7 @@
           iframe.onerror = () => switchChannelSourceAuto();
         };
 
-        if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+        if (sourceType !== "embed" && (location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
           fetch(`/api/resolve?url=${encodeURIComponent(targetEmbed)}&referer=${encodeURIComponent(source.referer || "")}`)
             .then(r => r.json())
             .then(data => {
@@ -1483,10 +1502,12 @@
         hideLoading();
         clearTimeout(autoFallbackTimer);
       } else {
-        // HLS directo
+        // HLS directo (en navegador/WebView, si requiere headers personalizados, activar proxy)
         iframe.style.display = "none";
         video.style.display = "block";
-        startHlsStreamWeb(source.url, source.useProxy);
+        const hasCustomHeaders = source.headers && Object.keys(source.headers).length > 0;
+        const shouldUseProxy = Boolean(source.useProxy || hasCustomHeaders);
+        startHlsStreamWeb(source.url, shouldUseProxy);
       }
     }
 
