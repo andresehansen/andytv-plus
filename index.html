@@ -1443,7 +1443,7 @@
             .then(data => {
               if (data && data.access_token) {
                 const m3u8Url = `https://mdstrm.com/live-stream-playlist/6a024684fd4ca6a938f3a118.m3u8?access_token=${data.access_token}`;
-                window.AndroidBridge.playNativeHlsWithHeaders(m3u8Url, "{}");
+                window.AndroidBridge.playNativeHlsWithHeaders(m3u8Url, JSON.stringify({ "Referer": "https://mitelefe.com/", "Origin": "https://mitelefe.com" }));
               } else {
                 switchChannelSourceAuto();
               }
