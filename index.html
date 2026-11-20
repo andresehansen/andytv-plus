@@ -1318,7 +1318,7 @@
       clearTimeout(overlayTimer);
       overlayTimer = setTimeout(() => {
         playerOverlay.classList.add("hidden");
-      }, 5000);
+      }, 8000);
     }
 
     function openChannel(index) {
@@ -1654,32 +1654,217 @@
     });
 
     /* ==========================================================================
-       CONTROL REMOTO Y TECLADO TV
+       CONTROL REMOTO Y TECLADO TV (D-PAD + CH+/- + BACK)
        ========================================================================== */
 
+    function changeChannelRelative(delta) {
+      if (!MERGED_CHANNELS || MERGED_CHANNELS.length === 0) return;
+      const nextIdx = (currentIndex + delta + MERGED_CHANNELS.length) % MERGED_CHANNELS.length;
+      openChannel(nextIdx);
+    }
+
+    function getHomeGridColumns() {
+      const cards = Array.from(document.querySelectorAll("#channels-container .channel-card"));
+      if (cards.length < 2) return 4;
+      const firstTop = cards[0].getBoundingClientRect().top;
+      let cols = 0;
+      for (const c of cards) {
+        if (Math.abs(c.getBoundingClientRect().top - firstTop) < 10) cols++;
+        else break;
+      }
+      return cols || 4;
+    }
+
     window.addEventListener("keydown", (e) => {
-      // Tecla Back
+      const isModalOpen = modalGist && modalGist.style.display === "flex";
+      const isPlayerOpen = viewPlayer && viewPlayer.style.display === "flex";
+
+      // Tecla Back / Escape
       if (e.key === "Escape" || e.keyCode === 27) {
-        if (modalGist.style.display === "flex") {
+        e.preventDefault();
+        if (isModalOpen) {
           modalGist.style.display = "none";
           return;
         }
-        if (viewPlayer.style.display === "flex") {
-          btnPlayerBack.click();
+        if (isPlayerOpen) {
+          if (!playerOverlay.classList.contains("hidden")) {
+            playerOverlay.classList.add("hidden");
+          } else {
+            btnPlayerBack.click();
+          }
           return;
         }
       }
 
-      // En el reproductor
-      if (viewPlayer.style.display === "flex") {
-        resetOverlayTimer();
-        if (e.keyCode === 166 /* CH+ */) {
-          openChannel((currentIndex + 1) % MERGED_CHANNELS.length);
-        } else if (e.keyCode === 167 /* CH- */) {
-          openChannel((currentIndex - 1 + MERGED_CHANNELS.length) % MERGED_CHANNELS.length);
+      if (isModalOpen) return;
+
+      // Teclas físicas CH+ / CH- / PageUp / PageDown (funcionan siempre en el reproductor)
+      if (isPlayerOpen) {
+        if (e.keyCode === 166 || e.key === "ChannelUp" || e.key === "PageUp" || e.keyCode === 33) {
+          e.preventDefault();
+          changeChannelRelative(1);
+          return;
+        }
+        if (e.keyCode === 167 || e.key === "ChannelDown" || e.key === "PageDown" || e.keyCode === 34) {
+          e.preventDefault();
+          changeChannelRelative(-1);
+          return;
+        }
+      }
+
+      // Navegación por Cruceta (D-Pad ◄ ▲ ▼ ►) en la Grilla Principal (#view-home)
+      if (!isPlayerOpen) {
+        const isArrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key);
+        if (isArrow) {
+          e.preventDefault();
+          const topBarItems = [
+            ...Array.from(document.querySelectorAll(".btn-pill")),
+            document.getElementById("btn-open-gist-modal"),
+            document.getElementById("btn-refresh-channels")
+          ].filter(Boolean);
+          const gridItems = Array.from(document.querySelectorAll("#channels-container .channel-card"));
+          const active = document.activeElement;
+          const topIdx = topBarItems.indexOf(active);
+          const gridIdx = gridItems.indexOf(active);
+          const COLS = getHomeGridColumns();
+
+          if (gridIdx >= 0) {
+            if (e.key === "ArrowRight" && gridIdx + 1 < gridItems.length) {
+              gridItems[gridIdx + 1].focus();
+            } else if (e.key === "ArrowLeft" && gridIdx - 1 >= 0) {
+              gridItems[gridIdx - 1].focus();
+            } else if (e.key === "ArrowDown") {
+              const nextIdx = Math.min(gridItems.length - 1, gridIdx + COLS);
+              gridItems[nextIdx].focus();
+            } else if (e.key === "ArrowUp") {
+              if (gridIdx - COLS >= 0) {
+                gridItems[gridIdx - COLS].focus();
+              } else {
+                const activePill = document.querySelector(".btn-pill.active") || topBarItems[0];
+                if (activePill) activePill.focus();
+              }
+            }
+          } else if (topIdx >= 0) {
+            if (e.key === "ArrowRight" && topIdx + 1 < topBarItems.length) {
+              topBarItems[topIdx + 1].focus();
+            } else if (e.key === "ArrowLeft" && topIdx - 1 >= 0) {
+              topBarItems[topIdx - 1].focus();
+            } else if (e.key === "ArrowDown" && gridItems.length > 0) {
+              gridItems[0].focus();
+            }
+          } else if (gridItems.length > 0) {
+            gridItems[0].focus();
+          }
+          return;
+        }
+      }
+
+      // En el reproductor: navegación por control remoto y guía lateral
+      if (isPlayerOpen) {
+        const topBtns = [btnPlayerBack, btnSwitchSource, btnPlayerFav]
+          .filter(b => b && b.style.display !== "none");
+        const sideBtns = Array.from(channelBar.querySelectorAll(".btn-bar-channel"));
+        const active = document.activeElement;
+        const tIdx = topBtns.indexOf(active);
+        const sIdx = sideBtns.indexOf(active);
+
+        // Caso 1: Overlay OCULTO (pantalla completa)
+        if (playerOverlay.classList.contains("hidden")) {
+          if (e.key === "ArrowUp" || e.key === "ArrowLeft" || e.keyCode === 37) {
+            e.preventDefault();
+            resetOverlayTimer();
+            if (topBtns.length > 0) topBtns[0].focus();
+            return;
+          }
+          if (e.key === "ArrowRight" || e.keyCode === 39) {
+            e.preventDefault();
+            resetOverlayTimer();
+            const target = btnPlayerFav && btnPlayerFav.style.display !== "none" ? btnPlayerFav : topBtns[topBtns.length - 1];
+            if (target) target.focus();
+            return;
+          }
+          if (e.key === "ArrowDown" || e.key === "Enter" || e.keyCode === 13) {
+            e.preventDefault();
+            resetOverlayTimer();
+            const activeBarBtn = sideBtns[currentIndex] || sideBtns[0];
+            if (activeBarBtn) {
+              activeBarBtn.focus();
+              scrollSideButtonToCenter(activeBarBtn, true);
+            }
+            return;
+          }
+        }
+        // Caso 2: Overlay VISIBLE
+        else {
+          resetOverlayTimer();
+          const isArrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key);
+          if (isArrow) {
+            e.preventDefault();
+            if (tIdx >= 0) {
+              if (e.key === "ArrowRight") {
+                topBtns[(tIdx + 1) % topBtns.length].focus();
+              } else if (e.key === "ArrowLeft") {
+                if (tIdx - 1 >= 0) topBtns[tIdx - 1].focus();
+                else if (sideBtns.length > 0) {
+                  const activeBarBtn = sideBtns[currentIndex] || sideBtns[0];
+                  activeBarBtn.focus();
+                  scrollSideButtonToCenter(activeBarBtn, true);
+                }
+              } else if (e.key === "ArrowDown" && sideBtns.length > 0) {
+                const activeBarBtn = sideBtns[currentIndex] || sideBtns[0];
+                activeBarBtn.focus();
+                scrollSideButtonToCenter(activeBarBtn, true);
+              }
+            } else if (sIdx >= 0) {
+              if (e.key === "ArrowDown") {
+                if (sIdx + 1 < sideBtns.length) {
+                  sideBtns[sIdx + 1].focus();
+                  scrollSideButtonToCenter(sideBtns[sIdx + 1], true);
+                }
+              } else if (e.key === "ArrowUp") {
+                if (sIdx - 1 >= 0) {
+                  sideBtns[sIdx - 1].focus();
+                  scrollSideButtonToCenter(sideBtns[sIdx - 1], true);
+                } else if (topBtns.length > 0) {
+                  topBtns[0].focus();
+                }
+              } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                if (topBtns.length > 0) topBtns[0].focus();
+              }
+            } else if (sideBtns.length > 0) {
+              const activeBarBtn = sideBtns[currentIndex] || sideBtns[0];
+              activeBarBtn.focus();
+              scrollSideButtonToCenter(activeBarBtn, true);
+            }
+          }
         }
       }
     });
+
+    // Callbacks nativos de MainActivity.java para botones físicos del control remoto Android TV
+    window.onAndroidChannelUp = function() {
+      changeChannelRelative(1);
+    };
+
+    window.onAndroidChannelDown = function() {
+      changeChannelRelative(-1);
+    };
+
+    window.onAndroidBackPressed = function() {
+      if (modalGist && modalGist.style.display === "flex") {
+        modalGist.style.display = "none";
+        return true;
+      }
+      if (viewPlayer && viewPlayer.style.display === "flex") {
+        if (!playerOverlay.classList.contains("hidden")) {
+          playerOverlay.classList.add("hidden");
+          return true;
+        }
+        btnPlayerBack.click();
+        return true;
+      }
+      return false;
+    };
 
     // Iniciar carga
     loadAllChannels();
