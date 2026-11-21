@@ -13,7 +13,7 @@ CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML
 
 def resolve_dynamic_m3u8(raw_url, referer=""):
     """Extrae el flujo HLS (.m3u8) desde el reproductor web sin páginas intermedias."""
-    ref = referer.strip() if referer else "https://www.anibaltv.net/"
+    ref = referer.strip() if referer else raw_url
     req1 = urllib.request.Request(raw_url, headers={"User-Agent": CHROME_UA, "Referer": ref})
     html1 = urllib.request.urlopen(req1, timeout=6).read().decode("utf-8", errors="ignore")
 

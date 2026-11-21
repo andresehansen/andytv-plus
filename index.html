@@ -997,14 +997,6 @@
           let fetchTarget = gistUrl.trim();
           let isApi = false;
 
-          // Atajo rápido de 4 dígitos para control remoto de TV
-          const GIST_SHORTCUTS = {
-            "2049": "2049d973495a1fa63d6baaa4a5d7343a"
-          };
-          if (GIST_SHORTCUTS[fetchTarget.toLowerCase()]) {
-            fetchTarget = GIST_SHORTCUTS[fetchTarget.toLowerCase()];
-          }
-
           // Soporte inteligente para TV: ingresar solo el ID del Gist, link corto o URL completa
           if (!fetchTarget.startsWith("http://") && !fetchTarget.startsWith("https://")) {
             fetchTarget = `https://api.github.com/gists/${fetchTarget}`;
@@ -1046,7 +1038,7 @@
                       tipo: (cleanUrl.includes("/embed2/") || f.tipo === "web_hls") ? "web_hls" : (f.tipo || "web_hls"),
                       type: (cleanUrl.includes("/embed2/") || f.tipo === "web_hls") ? "web_hls" : (f.tipo || "web_hls"),
                       url: cleanUrl,
-                      referer: f.referer || "https://www.anibaltv.net/"
+                      referer: f.referer || ""
                     });
                   }
                 });
@@ -1365,31 +1357,7 @@
     }
 
     function normalizeEmbedUrl(rawUrl) {
-      if (!rawUrl) return rawUrl;
-      const u = rawUrl.toLowerCase();
-      // Si ya es un reproductor embed directo, se mantiene tal cual
-      if (u.includes("/embed2/")) return rawUrl;
-
-      // Normalización de enlaces de páginas puente (Blogger / AnibalTV) a sus reproductores directos limpios
-      if (u.includes("espn-2") || u.includes("espn2")) return "https://embed.ksdjugfssddeports.com/embed2/espn2.php";
-      if (u.includes("espn-3") || u.includes("espn3")) return "https://embed.ksdjugfssddeports.com/embed2/espn3.php";
-      if (u.includes("espn-4") || u.includes("espn4") || u.includes("espn-extra")) return "https://embed.ksdjugfssddeports.com/embed2/espn4.php";
-      if (u.includes("espn-5") || u.includes("espn5")) return "https://embed.ksdjugfssddeports.com/embed2/espn5.php";
-      if (u.includes("espn-6") || u.includes("espn6")) return "https://embed.ksdjugfssddeports.com/embed2/espn6.php";
-      if (u.includes("espn-7") || u.includes("espn7")) return "https://embed.ksdjugfssddeports.com/embed2/espn7.php";
-      if (u.includes("espn-premium") || u.includes("espnpremium")) return "https://embed.ksdjugfssddeports.com/embed2/espnpremiumar.php";
-      if (u.includes("espn")) return "https://embed.saohgdassregions.com/embed2/espnar.php";
-      if (u.includes("tnt-sports") || u.includes("tntsports")) return "https://embed.ksdjugfssddeports.com/embed2/tntsportsar.php";
-      if (u.includes("liga-profesional")) return "https://embed.ksdjugfssddeports.com/embed2/espnpremiumar.php";
-      if (u.includes("directv-sports") || u.includes("directvsports")) return "https://embed.saohgdassregions.com/embed2/directvsports.php";
-      if (u.includes("tyc-sports") || u.includes("tycsports")) return "https://embed.saohgdassregions.com/embed2/tycsports.php";
-      if (u.includes("fox-sports") || u.includes("foxsports")) return "https://embed.ksdjugfssddeports.com/embed2/foxsports.php";
-      if (u.includes("dazn")) return "https://embed.ksdjugfssddeports.com/embed2/daznf1.php";
-      if (u.includes("telefe")) return "https://embed.saohgdasregions.fun/embed2/telefe.html";
-      if (u.includes("eltrece")) return "https://embed.saohgdasregions.fun/embed2/eltrece.html";
-      if (u.includes("america")) return "https://embed.saohgdasregions.fun/embed2/americatv.html";
-      if (u.includes("tvpublica") || u.includes("tv-publica")) return "https://embed.saohgdasregions.fun/embed2/tvpublica.html";
-      return rawUrl;
+      return rawUrl ? rawUrl.trim() : rawUrl;
     }
 
     function playCurrentChannelSource() {
@@ -1431,7 +1399,7 @@
           setNativeExoTransparent(true);
           video.style.display = "none";
           iframe.style.display = "none";
-          window.AndroidBridge.resolveAndPlayWebHls(normalizeEmbedUrl(source.url), source.referer || "https://www.anibaltv.net/", sourceType);
+          window.AndroidBridge.resolveAndPlayWebHls(normalizeEmbedUrl(source.url), source.referer || "", sourceType);
           return;
         } else if (sourceType === "telefe-token") {
           // Telefe token API -> reproducir nativo en ExoPlayer con fondo transparente

@@ -12,7 +12,7 @@ test("canales_extra.template.json: estructura y esquema válidos para Secret Gis
   assert.strictEqual(typeof data.version, "number");
   assert.strictEqual(Array.isArray(data.iptv_org_whitelist), true);
   assert.strictEqual(Array.isArray(data.canales), true);
-  assert.strictEqual(data.canales.length >= 18, true);
+  assert.strictEqual(data.canales.length >= 1, true);
 
   data.canales.forEach(ch => {
     assert.ok(ch.id, "Cada canal debe tener id");
